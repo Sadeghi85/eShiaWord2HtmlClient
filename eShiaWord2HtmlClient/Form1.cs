@@ -20,63 +20,7 @@ namespace eShiaWord2HtmlClient
             InitializeComponent();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            
-
-            string URI = textBox1.Text;
-            //string myParameters = "?q=" +textBox2.Text;
-
-            //URI += myParameters;
-
-            using (WebClient wc = new WebClient())
-            {
-                try
-                {
-                    wc.Encoding = Encoding.UTF8;
-                    //wc.Headers[HttpRequestHeader.ContentType] = "application/x-www-form-urlencoded";
-                    NameValueCollection queryStrings = new NameValueCollection();
-                    queryStrings.Add("q", textBox2.Text);
-
-                    wc.QueryString = queryStrings;
-
-                    string HtmlResult = wc.DownloadString(URI);
-                    //MessageBox.Show(HtmlResult);
-
-                    //byte[] encodedText = Encoding.UTF8.GetBytes(HtmlResult);
-                    Encoding utf8WithoutBom = new UTF8Encoding(false);
-
-                    using (
-                        StreamWriter sw = new StreamWriter(
-                             new FileStream("C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\test", FileMode.Create, FileAccess.ReadWrite),
-                        utf8WithoutBom
-                        )
-                    )
-                    {
-                        sw.Write(HtmlResult.ToString());
-                    }
-
-                    //FileStream fs = new FileStream("C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\test", FileMode.Create);
-                    //BinaryWriter bw = new BinaryWriter(fs,Encoding.UTF8);
-
-                    //HtmlResult = Convert.ToString(HtmlResult);
-
-                    //bw.Write(HtmlResult);
-                    //fs.Write(encodedText, 0, encodedText.Length);
-
-                    //fs.Close();
-                    //bw.Close();
-
-                }
-                catch (Exception ex)
-                {
-                    // handle error
-                    MessageBox.Show(ex.Message);
-                }
-            }
-
-        }
-
+        
         private void button2_Click(object sender, EventArgs e)
         {
             string endPoint = "http://eshia.ir/feqh/archive/convert2zip";
@@ -109,10 +53,8 @@ namespace eShiaWord2HtmlClient
 
                         if (result.success == "yes")
                         {
-                            Encoding utf8WithoutBom = new UTF8Encoding(false);
-
                             using (
-                                StreamWriter sw = new StreamWriter(
+                                BinaryWriter bw = new BinaryWriter(
                                      new FileStream("C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\test", FileMode.Create, FileAccess.ReadWrite)
                                 )
                             )
@@ -120,8 +62,7 @@ namespace eShiaWord2HtmlClient
                                 string content = result.content;
                                 byte[] data = Convert.FromBase64String(content);
                                 
-                                sw.Write(Encoding.UTF8.GetString(data));
-                                //sw.Write(result.content);
+                                bw.Write(data);
                             }
 
                             label1.Text = "Upload completed.";
@@ -136,13 +77,7 @@ namespace eShiaWord2HtmlClient
                         label1.Text = "Upload failed2.";
                     }
 
-                    //if (response == "Success")
-                    //    label1.Text = "Upload Complete.";
-                    //else
-                    //{
-                    //    label1.Text = "Upload Failed.";
-                    //    MessageBox.Show(response);
-                    //}
+                    
                 }
                 else
                 {
