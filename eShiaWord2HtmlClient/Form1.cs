@@ -15,36 +15,90 @@ namespace eShiaWord2HtmlClient
 {
     public partial class Form1 : Form
     {
+        private string[] documents;
+        private string[] documentsTemp;
+        private int documentAbsoluteCount = 0;
+
+        private List<string> documentsCompleted = new List<string>();
+        private List<string> documentsFailed = new List<string>();
+
+        private IDictionary<string, int> documentsProgress = new Dictionary<string, int>();
+
         public Form1()
         {
             InitializeComponent();
         }
 
-        
-        private void button2_Click(object sender, EventArgs e)
+        private void button1_Click(object sender, EventArgs e)
+        {
+            DialogResult result = folderBrowserDialog1.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                textBox1.Text = folderBrowserDialog1.SelectedPath;
+                documents = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*.docx");
+                documentAbsoluteCount = documents.Length;
+            }
+            else
+            {
+                textBox1.Text = "";
+            }
+        }
+
+        private void initUpload()
+        {
+            documentsTemp = documents;
+
+            while (documentsTemp.Length > 0)
+            {
+                int lastIdx = documentsTemp.Length - 1;
+                doUpload(documentsTemp[lastIdx]);
+
+                documentsTemp = documentsTemp.Where((val, idx) => idx != lastIdx).ToArray();
+            }
+        }
+
+        private int computeProgress()
+        {
+            int count = documentsProgress.Count;
+            int progress = 0;
+            int total = 0;
+
+            foreach (KeyValuePair<string, int> match in documentsProgress)
+            {
+                total += match.Value;
+            }
+
+            progress = (int) total / count;
+
+            return progress;
+        }
+
+        private void doUpload(string filePath)
         {
             string endPoint = "http://eshia.ir/feqh/archive/convert2zip";
-            string filePath = "C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\940618.docx";
+            //string filePath = "C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\940618.docx";
+            string folder = filePath.Substring(0, filePath.LastIndexOf("\\"));
+            string fileName = filePath.Substring(filePath.LastIndexOf("\\") + 1);
+            fileName = folder + "\\" + fileName.Substring(0, fileName.LastIndexOf(".")) + ".zip";
 
             WebClient wc = new WebClient();
 
-            // fired when upload progress is changed
-            // this updates a progressbar named pbProgress
             wc.UploadProgressChanged += (o, ea) =>
             {
                 if (ea.ProgressPercentage >= 0 && ea.ProgressPercentage <= 100)
-                    progressBar1.Value = ea.ProgressPercentage;
+                {
+                    //progressBar1.Value = ea.ProgressPercentage;
+                    documentsProgress[filePath] = ea.ProgressPercentage;
+
+                    progressBar1.Value = computeProgress();
+                }
+                
             };
 
-            // fired when the file upload is complete
-            // fired if an error occurs or if it's successful
             wc.UploadFileCompleted += (o, ea) =>
             {
-                // determine if upload failed or not
                 if (ea.Error == null)
                 {
-                    // response will let us know if there
-                    // was an error on the PHP side
                     string response = Encoding.UTF8.GetString(ea.Result);
 
                     try
@@ -55,42 +109,64 @@ namespace eShiaWord2HtmlClient
                         {
                             using (
                                 BinaryWriter bw = new BinaryWriter(
-                                     new FileStream("C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\test", FileMode.Create, FileAccess.ReadWrite)
+                                     new FileStream(fileName, FileMode.Create, FileAccess.ReadWrite)
                                 )
                             )
                             {
                                 string content = result.content;
                                 byte[] data = Convert.FromBase64String(content);
-                                
+
                                 bw.Write(data);
                             }
 
-                            label1.Text = "Upload completed.";
+                            //textBox2.Text = "Upload completed.";
+                            documentsCompleted.Add(filePath);
                         }
                         else
                         {
-                            label1.Text = "Upload failed3.";
+                            //textBox2.Text = "Upload failed.";
+                            documentsFailed.Add(filePath);
                         }
                     }
                     catch (Exception ex)
                     {
-                        label1.Text = "Upload failed2.";
+                        //textBox2.Text = "Upload failed.";
+                        documentsFailed.Add(filePath);
                     }
 
-                    
                 }
                 else
                 {
-                    label1.Text = "Upload failed1.";
-                    MessageBox.Show(ea.Error.Message);
+                    //textBox2.Text = "Upload failed.";
+                    documentsFailed.Add(filePath);
                 }
             };
 
-            // set the status to Uploading
-            label1.Text = "Uploading...";
-
-            // tell the webclient to upload the file
             wc.UploadFileAsync(new Uri(endPoint), filePath);
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (listBox1.Items.Count + listBox2.Items.Count < documentAbsoluteCount)
+            {
+                listBox1.Items.Clear();
+                listBox1.Items.AddRange(documentsCompleted.ToArray());
+                
+                listBox2.Items.Clear();
+                listBox2.Items.AddRange(documentsFailed.ToArray());
+            }
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            progressBar1.Value = 0;
+            listBox1.Items.Clear();
+            listBox2.Items.Clear();
+            documentsProgress = new Dictionary<string, int>();
+            documentsCompleted = new List<string>();
+            documentsFailed = new List<string>();
+
+            initUpload();
         }
     }
 }
