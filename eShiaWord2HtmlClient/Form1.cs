@@ -10,6 +10,7 @@ using System.Net;
 using System.IO;
 using System.Collections.Specialized;
 using Newtonsoft.Json;
+using ICSharpCode.SharpZipLib.Zip;
 
 namespace eShiaWord2HtmlClient
 {
@@ -35,8 +36,6 @@ namespace eShiaWord2HtmlClient
             if (result == DialogResult.OK)
             {
                 textBox1.Text = folderBrowserDialog1.SelectedPath;
-                documents = Directory.GetFiles(folderBrowserDialog1.SelectedPath, "*.docx");
-                documentAbsoluteCount = documents.Length;
             }
             else
             {
@@ -87,10 +86,9 @@ namespace eShiaWord2HtmlClient
             {
                 if (ea.ProgressPercentage >= 0 && ea.ProgressPercentage <= 100)
                 {
-                    //progressBar1.Value = ea.ProgressPercentage;
                     documentsProgress[filePath] = ea.ProgressPercentage;
 
-                    progressBar1.Value = computeProgress();
+                    toolStripProgressBar1.Value = computeProgress();
                 }
                 
             };
@@ -119,6 +117,22 @@ namespace eShiaWord2HtmlClient
                                 bw.Write(data);
                             }
 
+                            
+                            FastZip fastZip = new FastZip();
+                            string fileFilter = null;
+
+                            try
+                            {
+                                // Will always overwrite if target filenames already exist
+                                fastZip.ExtractZip(fileName, folder, fileFilter);
+
+                                File.Delete(fileName);
+                            }
+                            catch (Exception ex)
+                            {
+                            
+                            }
+                            
                             //textBox2.Text = "Upload completed.";
                             documentsCompleted.Add(filePath);
                         }
@@ -151,22 +165,40 @@ namespace eShiaWord2HtmlClient
             {
                 listBox1.Items.Clear();
                 listBox1.Items.AddRange(documentsCompleted.ToArray());
-                
+
                 listBox2.Items.Clear();
                 listBox2.Items.AddRange(documentsFailed.ToArray());
+            }
+            else
+            {
+                toolStripStatusLabel1.Text = "Ready.";
+                toolStripProgressBar1.Value = 0;
             }
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            progressBar1.Value = 0;
+            toolStripStatusLabel1.Text = "Converting...";
+            toolStripProgressBar1.Value = 0;
             listBox1.Items.Clear();
             listBox2.Items.Clear();
             documentsProgress = new Dictionary<string, int>();
             documentsCompleted = new List<string>();
             documentsFailed = new List<string>();
 
-            initUpload();
+            try
+            {
+                documents = Directory.GetFiles(textBox1.Text, "*.docx");
+                documentAbsoluteCount = documents.Length;
+
+                initUpload();
+            }
+            catch (Exception ex)
+            {
+            
+            }
+            
         }
+
     }
 }
