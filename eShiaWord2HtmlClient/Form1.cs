@@ -74,11 +74,32 @@ namespace eShiaWord2HtmlClient
 
         private void doUpload(string filePath)
         {
-            string endPoint = "http://eshia.ir/feqh/archive/convert2zip";
-            //string filePath = "C:\\Users\\Admin\\Desktop\\eshia-convert\\~\\940618.docx";
+
             string folder = filePath.Substring(0, filePath.LastIndexOf("\\"));
             string fileName = filePath.Substring(filePath.LastIndexOf("\\") + 1);
             fileName = folder + "\\" + fileName.Substring(0, fileName.LastIndexOf(".")) + ".zip";
+
+            string teacher = "";
+            string course  = "";
+            string year    = "";
+
+            try
+            {
+                dynamic config = JsonConvert.DeserializeObject(File.ReadAllText(folder + @"\__.w2hc"));
+
+                teacher = config.teacher;
+                course  = config.course;
+                year    = config.year;
+            }
+            catch (Exception ex)
+            { }
+
+            string endPoint = string.Format(
+                "http://eshia.ir/feqh/archive/convert2zip/{0}/{1}/{2}",
+                Uri.EscapeDataString(teacher),
+                Uri.EscapeDataString(course),
+                Uri.EscapeDataString(year)
+                );
 
             WebClient wc = new WebClient();
 
@@ -178,6 +199,25 @@ namespace eShiaWord2HtmlClient
 
         private void button2_Click(object sender, EventArgs e)
         {
+            string path = textBox1.Text + @"\__.w2hc";
+            string config = string.Format("{{\r\n\t\"teacher\": \"\",\r\n\t\"course\": \"\",\r\n\t\"year\": \"\"\r\n}}");
+
+            try
+            {
+                if (!File.Exists(path))
+                {
+
+                    TextWriter tw = File.CreateText(path);
+                    tw.Write(config);
+                    tw.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            
+            
             toolStripStatusLabel1.Text = "Converting...";
             toolStripProgressBar1.Value = 0;
             listBox1.Items.Clear();
